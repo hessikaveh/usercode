@@ -1,15 +1,7 @@
 #include "CondCore/Utilities/interface/Utilities.h"
+#include "CondCore/CondDB/interface/ConnectionPool.h"
+#include "CondCore/CondDB/interface/IOVProxy.h"
 
-#include "CondCore/DBCommon/interface/DbConnection.h"
-#include "CondCore/DBCommon/interface/DbScopedTransaction.h"
-#include "CondCore/DBCommon/interface/DbTransaction.h"
-#include "CondCore/DBCommon/interface/Exception.h"
-#include "CondCore/MetaDataService/interface/MetaData.h"
-
-#include "CondCore/DBCommon/interface/Time.h"
-#include "CondFormats/Common/interface/TimeConversions.h"
-
-#include "CondCore/IOVService/interface/IOVProxy.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatios.h"
 #include "CondFormats/DataRecord/interface/EcalLaserAPDPNRatiosRcd.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatiosRef.h"
@@ -28,7 +20,7 @@ float _values[75848];
 int   _nvalues[75848];
 
 namespace cond {
-        class TriggerTag : public Utilities {
+        class LaserValidation : public Utilities {
                 public:
                         typedef EcalLaserAPDPNRatios A;
                         typedef EcalLaserAPDPNRatios::EcalLaserAPDPNRatiosMap AMap;
@@ -36,20 +28,8 @@ namespace cond {
                         typedef EcalLaserAPDPNRatios::EcalLaserAPDPNpair AP;
                         typedef EcalLaserAPDPNRatios::EcalLaserTimeStamp AT;
 
-                        std::string getToken(cond::DbSession & s, std::string & tag)
-                        {
-                                s = openDbSession("connect", true);
-                                cond::MetaData metadata_svc(s);
-                                cond::DbScopedTransaction transaction(s);
-                                transaction.start(true);
-                                std::string token = metadata_svc.getToken(tag);
-                                transaction.commit();
-                                std::cout << "Source iov token: " << token << "\n";
-                                return token;
-                        }
-
-                        TriggerTag();
-                        ~TriggerTag();
+                        LaserValidation();
+                        ~LaserValidation();
                         int execute();
                         void dump_time_average(FILE * fd, time_t tb, time_t te);
                         void dump_txt(FILE * fd);
@@ -62,9 +42,8 @@ namespace cond {
 
 }
 
-cond::TriggerTag::TriggerTag():Utilities("cmscond_list_iov")
+cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
 {
-        addConnectOption();
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");
@@ -103,11 +82,11 @@ cond::TriggerTag::TriggerTag():Utilities("cmscond_list_iov")
         assert(ecalDetIds_.size() == EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing);
 }
 
-cond::TriggerTag::~TriggerTag(){
+cond::LaserValidation::~LaserValidation(){
 }
 
 
-void cond::TriggerTag::dump_time_average(FILE * fd, time_t tb, time_t te)
+void cond::LaserValidation::dump_time_average(FILE * fd, time_t tb, time_t te)
 {
         AT ta;
         AMapCit ita, itb;
@@ -123,7 +102,7 @@ void cond::TriggerTag::dump_time_average(FILE * fd, time_t tb, time_t te)
         }
 }
 
-void cond::TriggerTag::dump_txt(FILE * fd)
+void cond::LaserValidation::dump_txt(FILE * fd)
 {
         AMapCit ita, itb;
         float p2 = -1.;
@@ -151,7 +130,7 @@ void cond::TriggerTag::dump_txt(FILE * fd)
         }
 }
 
-void cond::TriggerTag::fill_time_average(const A & obja)
+void cond::LaserValidation::fill_time_average(const A & obja)
 {
         AMapCit it;
         for (size_t i = 0; i < ecalDetIds_.size(); ++i) {
@@ -161,7 +140,7 @@ void cond::TriggerTag::fill_time_average(const A & obja)
         }
 }
 
-void cond::TriggerTag::reset_time_average()
+void cond::LaserValidation::reset_time_average()
 {
         for (size_t i = 0; i < ecalDetIds_.size(); ++i) {
                 _values[i] = 0.;
@@ -170,133 +149,100 @@ void cond::TriggerTag::reset_time_average()
 }
 
 
-int cond::TriggerTag::execute()
+int cond::LaserValidation::execute()
 {
-        initializePluginManager();
+        std::string connect = getOptionValue<std::string>("connect" );
+        cond::persistency::ConnectionPool connPool;
+        if( hasOptionValue("authPath") ){
+                connPool.setAuthenticationPath( getOptionValue<std::string>( "authPath") ); 
+        }
+        connPool.configure();
+        cond::persistency::Session session = connPool.createSession( connect );
 
-        bool listAll = hasOptionValue("all");
-        cond::DbSession session  = openDbSession("connect", true);
-        cond::DbScopedTransaction transaction(session);
-        transaction.start(true);
+        std::string tag1 = getOptionValue<std::string>("tag");
 
-        if(listAll){
-                cond::MetaData metadata_svc(session);
-                std::vector<std::string> alltags;
-                cond::DbScopedTransaction transaction(session);
-                transaction.start(true);
-                metadata_svc.listAllTags(alltags);
-                transaction.commit();
-                std::copy (alltags.begin(),
-                           alltags.end(),
-                           std::ostream_iterator<std::string>(std::cout,"\n")
-                          );
+        session.transaction().start( true );
+        const cond::persistency::IOVProxy & iov = session.readIov(tag1, true);
+
+        cond::Time_t since = std::numeric_limits<cond::Time_t>::min();
+        if(hasOptionValue("beginTime")) since = getOptionValue<cond::Time_t>("beginTime");
+        cond::Time_t till = std::numeric_limits<cond::Time_t>::max();
+        if(hasOptionValue("endTime")) till = getOptionValue<cond::Time_t>("endTime");
+
+        time_t t_interval = std::numeric_limits<time_t>::max();
+        if (hasOptionValue("deltaTime")) t_interval = getOptionValue<time_t>("deltaTime");
+        bool shift = hasOptionValue("shift");
+
+        FILE * fdump = NULL;
+        char filename[256];
+        if (hasOptionValue("dump")) {
+                fdump = fopen(getOptionValue<std::string>("dump").c_str(), "w");
+                assert(fdump);
         } else {
-                std::string tag1 = getOptionValue<std::string>("tag");
+                sprintf(filename, "dump_%s__avg_since_%08ld_till_%08ld.dat", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32));
+                fdump = fopen(filename, "w");
+                assert(fdump);
+        }
 
-                cond::MetaData metadata_svc(session);
-                cond::DbScopedTransaction transaction(session);
-                transaction.start(true);
-                transaction.commit();
-                std::string token1, token2;
-                token1 = metadata_svc.getToken(tag1);
+        //bool verbose = hasOptionValue("verbose");
+        bool txt = hasOptionValue("txt");
 
-                cond::Time_t since = std::numeric_limits<cond::Time_t>::min();
-                if(hasOptionValue("beginTime")) since = getOptionValue<cond::Time_t>("beginTime");
-                cond::Time_t till = std::numeric_limits<cond::Time_t>::max();
-                if(hasOptionValue("endTime")) till = getOptionValue<cond::Time_t>("endTime");
+        std::string rf = "eerings.dat";
+        if (hasOptionValue("ringFile")) rf = getOptionValue<std::string>("ringFile");
+        dr_.setEERings(rf.c_str());
 
-                time_t t_interval = std::numeric_limits<time_t>::max();
-                if (hasOptionValue("deltaTime")) t_interval = getOptionValue<time_t>("deltaTime");
-                bool shift = hasOptionValue("shift");
+        std::cout << "since: " << since << "   till: " << till << "\n";
 
-                FILE * fdump = NULL;
-                char filename[256];
-                if (hasOptionValue("dump")) {
-                        fdump = fopen(getOptionValue<std::string>("dump").c_str(), "w");
-                        assert(fdump);
-                } else {
-                        sprintf(filename, "dump_%s__avg_since_%08ld_till_%08ld.dat", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32));
-                        fdump = fopen(filename, "w");
-                        assert(fdump);
-                }
+        int niov = -1;
+        if (hasOptionValue("niov")) niov = getOptionValue<int>("niov");
+        static const unsigned int nIOVS = std::distance(iov.begin(), iov.end());
 
-                bool verbose = hasOptionValue("verbose");
-                //bool flat = hasOptionValue("flat");
-                bool txt = hasOptionValue("txt");
+        int prescale = 1;
+        if (hasOptionValue("prescale")) prescale = getOptionValue<int>("prescale");
+        assert(prescale > 0);
 
-                std::string rf = "eerings.dat";
-                if (hasOptionValue("ringFile")) rf = getOptionValue<std::string>("ringFile");
-                dr_.setEERings(rf.c_str());
-
-                //cond::IOVProxy iov(session, getToken(session, tag));
-                cond::IOVProxy iov1(session, token1);
-
-                std::cout << "since: " << since << "   till: " << till << "\n";
-
-                iov1.range(since, till);
-
-                //std::string payloadContainer = iov.payloadContainerName();
-                const std::set<std::string> payloadClasses = iov1.payloadClasses();
-                std::cout<<"Tag "<<tag1;
-                if (verbose) std::cout << "\nStamp: " << iov1.iov().comment()
-                        << "; time " <<  cond::time::to_boost(iov1.iov().timestamp())
-                                << "; revision " << iov1.iov().revision();
-                std::cout <<"\nTimeType " << cond::timeTypeSpecs[iov1.timetype()].name
-                        <<"\nPayloadClasses:\n";
-                for (std::set<std::string>::const_iterator it = payloadClasses.begin(); it != payloadClasses.end(); ++it) {
-                        std::cout << " --> " << *it << "\n";
-                }
-                std::cout
-                        <<"since \t till \t payloadToken"<<std::endl;
-
-                int niov = -1;
-                if (hasOptionValue("niov")) niov = getOptionValue<int>("niov");
-
-                int prescale = 1;
-                if (hasOptionValue("prescale")) prescale = getOptionValue<int>("prescale");
-                assert(prescale > 0);
-
-                static const unsigned int nIOVS = std::distance(iov1.begin(), iov1.end());
-
-                std::cout << "nIOVS: " << nIOVS << "\n";
-
-                int cnt = 0, cnt_iov = 0, one_dumped = 0;
-                A res;
-                time_t tb, te, tb_first = (iov1.begin() + 1)->since()>>32, te_last = (iov1.begin() + 1)->till()>>32;
-                for (cond::IOVProxy::const_iterator ita = iov1.begin() + 1; ita != iov1.end(); ++ita, ++cnt) {
-                        //if (cnt == 0 || cnt < 2) continue;
-                        //if (cnt % prescale != 0) continue;
-                        if (ita->since() < since || ita->till() > till) continue;
-                        boost::shared_ptr<A> pa = session.getTypedObject<A>(ita->token());
-                        if (niov > 0 && cnt_iov >= niov) break;
-                        tb = (time_t)ita->since()>>32;
-                        te = (time_t)ita->till()>>32;
-                        printf("--> %lu %lu (%d/%d)\n", tb, te, cnt, nIOVS);
-                        if (tb - tb_first > t_interval) {
-                                printf("... writing tag with begin: %lu end: %lu (deltaT: %lu) - t_interval: %lu\n", tb_first, te_last, te_last - tb_first, t_interval);
-                                if (!txt) dump_time_average(fdump, tb_first, te_last);
-                                else      dump_txt(fdump);
-                                reset_time_average();
-                                tb_first = tb;
-                                one_dumped = 1;
-                        }
-                        te_last = te;
-                        fill_time_average(*pa);
-                        ++cnt_iov;
-                }
-                if (!one_dumped) {
+        int cnt = 0, cnt_iov = 0, one_dumped = 0;
+        A res;
+        time_t tb, te, tb_first = 0, te_last = 0;
+        for (const auto & i : iov) {
+                tb_first = i.since>>32;
+                te_last  = i.till>>32;
+                break;
+        }
+        for (const auto & i : iov) {
+                ++cnt_iov;
+                if (i.since < since || i.till > till) continue;
+                if (cnt_iov % prescale != 0) continue;
+                ++cnt;
+                std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
+                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                tb = (time_t)i.since>>32;
+                te = (time_t)i.till>>32;
+                printf("--> %lu %lu (%d/%d)\n", tb, te, cnt, nIOVS);
+                if (tb - tb_first > t_interval) {
+                        printf("... writing tag with begin: %lu end: %lu (deltaT: %lu) - t_interval: %lu\n", tb_first, te_last, te_last - tb_first, t_interval);
                         if (!txt) dump_time_average(fdump, tb_first, te_last);
                         else      dump_txt(fdump);
+                        reset_time_average();
+                        tb_first = tb;
+                        one_dumped = 1;
                 }
-                transaction.commit();
-                fclose(fdump);
+                te_last = te;
+                fill_time_average(*pa);
+                if (niov > 0 && cnt >= niov) break;
         }
+        if (!one_dumped) {
+                if (!txt) dump_time_average(fdump, tb_first, te_last);
+                else      dump_txt(fdump);
+        }
+        session.transaction().commit();
+        fclose(fdump);
         return 0;
 }
 
 
 int main( int argc, char** argv )
 {
-        cond::TriggerTag valida;
+        cond::LaserValidation valida;
         return valida.run(argc,argv);
 }

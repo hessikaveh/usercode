@@ -1,3 +1,4 @@
+/*
 #include "CondCore/Utilities/interface/Utilities.h"
 
 #include "FWCore/PluginManager/interface/PluginManager.h"
@@ -480,3 +481,5 @@ int main( int argc, char** argv )
         dump_quality(fquality);
         return 0;
 }
+*/
+int main() { return 0; }

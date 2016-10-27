@@ -2,10 +2,6 @@
 #include "CondCore/CondDB/interface/ConnectionPool.h"
 #include "CondCore/CondDB/interface/IOVProxy.h"
 
-#include "CondCore/DBCommon/interface/Time.h"
-#include "CondFormats/Common/interface/TimeConversions.h"
-
-#include "CondCore/IOVService/interface/IOVProxy.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatios.h"
 #include "CondFormats/DataRecord/interface/EcalLaserAPDPNRatiosRcd.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatiosRef.h"
@@ -43,7 +39,6 @@ namespace cond {
 
 cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
 {
-        addConnectOption();
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");

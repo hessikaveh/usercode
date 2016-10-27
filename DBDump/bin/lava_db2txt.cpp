@@ -2,16 +2,6 @@
 #include "CondCore/CondDB/interface/ConnectionPool.h"
 #include "CondCore/CondDB/interface/IOVProxy.h"
 
-#include "CondCore/DBCommon/interface/DbConnection.h"
-#include "CondCore/DBCommon/interface/DbScopedTransaction.h"
-#include "CondCore/DBCommon/interface/DbTransaction.h"
-#include "CondCore/DBCommon/interface/Exception.h"
-#include "CondCore/MetaDataService/interface/MetaData.h"
-
-#include "CondCore/DBCommon/interface/Time.h"
-#include "CondFormats/Common/interface/TimeConversions.h"
-
-#include "CondCore/IOVService/interface/IOVProxy.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatios.h"
 #include "CondFormats/DataRecord/interface/EcalLaserAPDPNRatiosRcd.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatiosRef.h"
@@ -57,7 +47,6 @@ namespace cond {
 
 cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
 {
-        addConnectOption();
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");
@@ -182,21 +171,6 @@ int cond::LaserValidation::execute()
 
         std::cout << "since: " << since << "   till: " << till << "\n";
 
-        //FIXME//iov1.range(since, till);
-
-        //FIXME//const std::set<std::string> payloadClasses = iov1.payloadClasses();
-        //FIXME//std::cout<<"Tag "<<tag1;
-        //FIXME//if (verbose) std::cout << "\nStamp: " << iov1.iov().comment()
-        //FIXME//        << "; time " <<  cond::time::to_boost(iov1.iov().timestamp())
-        //FIXME//                << "; revision " << iov1.iov().revision();
-        //FIXME//std::cout <<"\nTimeType " << cond::timeTypeSpecs[iov1.timetype()].name
-        //FIXME//        <<"\nPayloadClasses:\n";
-        //FIXME//for (std::set<std::string>::const_iterator it = payloadClasses.begin(); it != payloadClasses.end(); ++it) {
-        //FIXME//        std::cout << " --> " << *it << "\n";
-        //FIXME//}
-        //FIXME//std::cout
-        //FIXME//        <<"since \t till \t payloadToken"<<std::endl;
-
         int niov = -1;
         if (hasOptionValue("niov")) niov = getOptionValue<int>("niov");
 
@@ -212,7 +186,7 @@ int cond::LaserValidation::execute()
         typedef unsigned int RunNumber_t;
 
         int cnt = -1;
-        for (auto i : iov) {
+        for (const auto & i : iov) {
                 //if (cnt == 0 || cnt < 2) continue;
                 ++cnt;
                 if (cnt % prescale != 0) continue;
