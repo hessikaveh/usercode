@@ -102,12 +102,7 @@ namespace cond {
                         // main loop
                         int execute()
                         {
-                                std::string connect;
-                                if (hasOptionValue("connect")) {
-                                        connect = getOptionValue<std::string>("connect" );
-                                } else {
-                                        connect = "frontier://FrontierProd/CMS_CONDITIONS";
-                                }
+                                std::string connect = "frontier://FrontierProd/CMS_CONDITIONS";
 
                                 cond::persistency::ConnectionPool connPool;
 
@@ -131,7 +126,7 @@ namespace cond {
                                 if (hasOptionValue("join")) join = true;
 
                                 connPool.configure();
-                                cond::persistency::Session session = connPool.createSession( connect );
+                                cond::persistency::Session session = connPool.createSession(connect);
 
                                 std::string tag = getOptionValue<std::string>("tag");
 
