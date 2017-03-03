@@ -36,7 +36,6 @@ namespace cond {
 
                         CondDBDumper(std::string class_name) : Utilities("conddb_dumper"), _class_name(class_name)
                         {
-                                addConnectOption();
                                 addAuthenticationOptions();
                                 addOption<bool>("join", "j", "produce one single output file, where IOVs are separated by double line break and a comment line starting with `#'");
                                 addOption<bool>("verbose","v","verbose");
@@ -103,12 +102,7 @@ namespace cond {
                         // main loop
                         int execute()
                         {
-                                std::string connect;
-                                if (hasOptionValue("connect")) {
-                                        connect = getOptionValue<std::string>("connect" );
-                                } else {
-                                        connect = "frontier://FrontierProd/CMS_CONDITIONS";
-                                }
+                                std::string connect = "frontier://FrontierProd/CMS_CONDITIONS";
 
                                 cond::persistency::ConnectionPool connPool;
 
@@ -132,7 +126,7 @@ namespace cond {
                                 if (hasOptionValue("join")) join = true;
 
                                 connPool.configure();
-                                cond::persistency::Session session = connPool.createSession( connect );
+                                cond::persistency::Session session = connPool.createSession(connect);
 
                                 std::string tag = getOptionValue<std::string>("tag");
 

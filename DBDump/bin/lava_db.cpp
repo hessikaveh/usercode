@@ -34,7 +34,6 @@ namespace cond {
 
 cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
 {
-        addConnectOption();
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");

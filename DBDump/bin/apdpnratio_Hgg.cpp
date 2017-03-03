@@ -1,15 +1,7 @@
 #include "CondCore/Utilities/interface/Utilities.h"
+#include "CondCore/CondDB/interface/ConnectionPool.h"
+#include "CondCore/CondDB/interface/IOVProxy.h"
 
-#include "CondCore/DBCommon/interface/DbConnection.h"
-#include "CondCore/DBCommon/interface/DbScopedTransaction.h"
-#include "CondCore/DBCommon/interface/DbTransaction.h"
-#include "CondCore/DBCommon/interface/Exception.h"
-#include "CondCore/MetaDataService/interface/MetaData.h"
-
-#include "CondCore/DBCommon/interface/Time.h"
-#include "CondFormats/Common/interface/TimeConversions.h"
-
-#include "CondCore/IOVService/interface/IOVProxy.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatios.h"
 #include "CondFormats/DataRecord/interface/EcalLaserAPDPNRatiosRcd.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAPDPNRatiosRef.h"
@@ -57,18 +49,6 @@ namespace cond {
                         typedef EcalLaserAPDPNRatios::EcalLaserAPDPNpair AP;
                         typedef EcalLaserAPDPNRatios::EcalLaserTimeStamp AT;
 
-                        std::string getToken(cond::DbSession & s, std::string & tag)
-                        {
-                                s = openDbSession("connect", true);
-                                cond::MetaData metadata_svc(s);
-                                cond::DbScopedTransaction transaction(s);
-                                transaction.start(true);
-                                std::string token = metadata_svc.getToken(tag);
-                                transaction.commit();
-                                std::cout << "Source iov token: " << token << "\n";
-                                return token;
-                        }
-
                         APDPNRatioHgg();
                         ~APDPNRatioHgg();
                         int execute();
@@ -89,7 +69,6 @@ namespace cond {
 
 cond::APDPNRatioHgg::APDPNRatioHgg():Utilities("cmscond_list_iov")
 {
-        addConnectOption();
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");
@@ -293,126 +272,88 @@ void cond::APDPNRatioHgg::reset_ring_average()
 
 int cond::APDPNRatioHgg::execute()
 {
-        initializePluginManager();
-
-        bool listAll = hasOptionValue("all");
-        cond::DbSession session  = openDbSession("connect", true);
-        cond::DbScopedTransaction transaction(session);
-        transaction.start(true);
-
-        if(listAll){
-                cond::MetaData metadata_svc(session);
-                std::vector<std::string> alltags;
-                cond::DbScopedTransaction transaction(session);
-                transaction.start(true);
-                metadata_svc.listAllTags(alltags);
-                transaction.commit();
-                std::copy (alltags.begin(),
-                           alltags.end(),
-                           std::ostream_iterator<std::string>(std::cout,"\n")
-                          );
-        } else {
-                std::string tag1 = getOptionValue<std::string>("tag");
-
-                cond::MetaData metadata_svc(session);
-                cond::DbScopedTransaction transaction(session);
-                transaction.start(true);
-                transaction.commit();
-                std::string token1, token2;
-                token1 = metadata_svc.getToken(tag1);
-
-                cond::Time_t since = std::numeric_limits<cond::Time_t>::min();
-                if(hasOptionValue("beginTime")) since = getOptionValue<cond::Time_t>("beginTime");
-                cond::Time_t till = std::numeric_limits<cond::Time_t>::max();
-                if(hasOptionValue("endTime")) till = getOptionValue<cond::Time_t>("endTime");
-
-                //time_t t_interval = 1;
-                //if (hasOptionValue("deltaTime")) t_interval = getOptionValue<time_t>("deltaTime");
-                bool shift = hasOptionValue("shift");
-
-                std::string rf = "eerings.dat";
-                if (hasOptionValue("ringFile")) rf = getOptionValue<std::string>("ringFile");
-                dr_.setEERings(rf.c_str());
-
-                read_chstatus();
-
-                int prescale = 1;
-                if (hasOptionValue("prescale")) prescale = getOptionValue<int>("prescale");
-                assert(prescale > 0);
-
-                FILE * fdump = NULL;
-                TFile * fout = 0;
-                char filename[256];
-                if (hasOptionValue("dump")) {
-                        fdump = fopen(getOptionValue<std::string>("dump").c_str(), "w");
-                        fout = new TFile((getOptionValue<std::string>("dump") + ".root").c_str(), "recreate");
-                        assert(fdump);
-                } else {
-                        sprintf(filename, "dump_%s__rings_since_%08ld_till_%08ld_prescale%d.dat", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32), prescale);
-                        fdump = fopen(filename, "w");
-                        sprintf(filename, "dump_%s__rings_since_%08ld_till_%08ld_prescale%d.dat.root", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32), prescale);
-                        fout = new TFile(filename, "recreate");
-                        assert(fdump);
-                }
-
-                //FILE * fd = fopen("eta_rings.dat", "w");
-                //dump_eta_rings(fd);
-                //fclose(fd);
-                //exit(-1);
-
-                bool verbose = hasOptionValue("verbose");
-                //bool flat = hasOptionValue("flat");
-                //bool txt = hasOptionValue("txt");
-
-                //cond::IOVProxy iov(session, getToken(session, tag));
-                cond::IOVProxy iov1(session, token1);
-
-                std::cout << "since: " << since << "   till: " << till << "\n";
-
-                iov1.range(since, till);
-
-                //std::string payloadContainer = iov.payloadContainerName();
-                const std::set<std::string> payloadClasses = iov1.payloadClasses();
-                std::cout<<"Tag "<<tag1;
-                if (verbose) std::cout << "\nStamp: " << iov1.iov().comment()
-                        << "; time " <<  cond::time::to_boost(iov1.iov().timestamp())
-                                << "; revision " << iov1.iov().revision();
-                std::cout <<"\nTimeType " << cond::timeTypeSpecs[iov1.timetype()].name
-                        <<"\nPayloadClasses:\n";
-                for (std::set<std::string>::const_iterator it = payloadClasses.begin(); it != payloadClasses.end(); ++it) {
-                        std::cout << " --> " << *it << "\n";
-                }
-                std::cout
-                        <<"since \t till \t payloadToken"<<std::endl;
-
-                int niov = -1;
-                if (hasOptionValue("niov")) niov = getOptionValue<int>("niov");
-
-                static const unsigned int nIOVS = std::distance(iov1.begin(), iov1.end());
-
-                std::cout << "nIOVS: " << nIOVS << "\n";
-
-                int cnt = 0, cnt_iov = 0; //, one_dumped = 0;
-                A res;
-                time_t tb, te;
-                for (cond::IOVProxy::const_iterator ita = iov1.begin() + 1; ita != iov1.end(); ++ita, ++cnt) {
-                        //if (cnt == 0 || cnt < 2) continue;
-                        if (cnt % prescale != 0) continue;
-                        if (ita->since() < since || ita->till() > till) continue;
-                        boost::shared_ptr<A> pa = session.getTypedObject<A>(ita->token());
-                        if (niov > 0 && cnt_iov >= niov) break;
-                        tb = (time_t)ita->since()>>32;
-                        te = (time_t)ita->till()>>32;
-                        reset_ring_average();
-                        printf("--> %lu %lu (%d/%d)\n", tb, te, cnt, nIOVS);
-                        reset_ring_average();
-                        fill_ring_average(*pa);
-                        dump_ring_average(fdump, tb, te, fout);
-                        ++cnt_iov;
-                }
-                transaction.commit();
-                fclose(fdump);
+        std::string connect = getOptionValue<std::string>("connect" );
+        cond::persistency::ConnectionPool connPool;
+        if( hasOptionValue("authPath") ){
+                connPool.setAuthenticationPath( getOptionValue<std::string>( "authPath") ); 
         }
+        connPool.configure();
+        cond::persistency::Session session = connPool.createSession( connect );
+
+        std::string tag1 = getOptionValue<std::string>("tag");
+
+        session.transaction().start( true );
+        const cond::persistency::IOVProxy & iov = session.readIov(tag1, true);
+
+        cond::Time_t since = std::numeric_limits<cond::Time_t>::min();
+        if(hasOptionValue("beginTime")) since = getOptionValue<cond::Time_t>("beginTime");
+        cond::Time_t till = std::numeric_limits<cond::Time_t>::max();
+        if(hasOptionValue("endTime")) till = getOptionValue<cond::Time_t>("endTime");
+
+        bool shift = hasOptionValue("shift");
+
+        std::string rf = "eerings.dat";
+        if (hasOptionValue("ringFile")) rf = getOptionValue<std::string>("ringFile");
+        dr_.setEERings(rf.c_str());
+
+        read_chstatus();
+
+        int prescale = 1;
+        if (hasOptionValue("prescale")) prescale = getOptionValue<int>("prescale");
+        assert(prescale > 0);
+
+        FILE * fdump = NULL;
+        TFile * fout = 0;
+        char filename[256];
+        if (hasOptionValue("dump")) {
+                fdump = fopen(getOptionValue<std::string>("dump").c_str(), "w");
+                fout = new TFile((getOptionValue<std::string>("dump") + ".root").c_str(), "recreate");
+                assert(fdump);
+        } else {
+                sprintf(filename, "dump_%s__rings_since_%08ld_till_%08ld_prescale%d.dat", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32), prescale);
+                fdump = fopen(filename, "w");
+                sprintf(filename, "dump_%s__rings_since_%08ld_till_%08ld_prescale%d.dat.root", tag1.c_str(), (long int)since>>(shift * 32), (long int)till>>(shift * 32), prescale);
+                fout = new TFile(filename, "recreate");
+                assert(fdump);
+        }
+
+        //FILE * fd = fopen("eta_rings.dat", "w");
+        //dump_eta_rings(fd);
+        //fclose(fd);
+        //exit(-1);
+
+        //bool verbose = hasOptionValue("verbose");
+
+        std::cout << "since: " << since << "   till: " << till << "\n";
+
+        int niov = -1;
+        if (hasOptionValue("niov")) niov = getOptionValue<int>("niov");
+
+        static const unsigned int nIOVS = std::distance(iov.begin(), iov.end());
+
+        std::cout << "nIOVS: " << nIOVS << "\n";
+
+        int cnt = 0, cnt_iov = 0; //, one_dumped = 0;
+        A res;
+        time_t tb, te;
+        for (const auto & i : iov) {
+                ++cnt_iov;
+                if (i.since < since || i.till > till) continue;
+                if (cnt_iov % prescale != 0) continue;
+                ++cnt;
+                std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
+                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                tb = (time_t)i.since>>32;
+                te = (time_t)i.till>>32;
+                reset_ring_average();
+                printf("--> %lu %lu (%d/%d)\n", tb, te, cnt, nIOVS);
+                reset_ring_average();
+                fill_ring_average(*pa);
+                dump_ring_average(fdump, tb, te, fout);
+                if (niov > 0 && cnt >= niov) break;
+        }
+        session.transaction().commit();
+        fclose(fdump);
         return 0;
 }
 

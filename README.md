@@ -41,22 +41,22 @@
                        coherent txt file (N.B. does not need the CMSSW environment to work)
 
 #### Dumper setup
-Setup a working area for example in `CMSSW_7_4_0_pre5`. Any release `>=7XY`
+Setup a working area for example in `CMSSW_8_0_2`. Any release `>=8XY`
 should work just fine, contact me in case not.
 ```bash
-cmsrel CMSSW_7_4_6_patch2
-cd CMSSW_7_4_6_patch2/src
+cmsrel CMSSW_8_0_2
+cd CMSSW_8_0_2/src
 cmsenv
 git cms-init
 git clone git@github.com:ferriff/usercode.git
-git cms-merge-topic -u ferriff:ecal_calib_tools
+git cms-merge-topic -u ferriff:ecal_calib_tools # works with some apparently harmless errors
 cd usercode/
 scram b
 ```
 
 Example: how to dump an object from the default Frontier DataBase
 ```bash
-conddb_dumper -O EcalIntercalibConstants -c frontier://FrontierProd/CMS_CONDITIONS -t EcalIntercalibConstants_2012ABCD_offline
+conddb_dumper -O EcalIntercalibConstants -t EcalIntercalibConstants_2012ABCD_offline
 ```
 
 #### Additional documentation
