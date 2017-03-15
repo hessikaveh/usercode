@@ -17,6 +17,7 @@
 #include "CondFormats/EcalObjects/interface/EcalCondObjectContainer.h"
 #include "CondFormats/EcalObjects/interface/EcalGainRatios.h"
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
+#include "CondFormats/EcalObjects/interface/EcalPulseShapes.h"
 #include "CondFormats/EcalObjects/interface/EcalTimeOffsetConstant.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGLinearizationConst.h"
 #include "CondFormats/ESObjects/interface/ESEEIntercalibConstants.h"
@@ -289,6 +290,23 @@ namespace cond {
                                         fprintf(fd, "%d %d %d  %f %f  %u\n", _c.ix_, _c.iy_, _c.iz_,
                                                 (*it).gain12Over6(), (*it).gain6Over1(),
                                                 id.rawId());
+                                }
+                        }
+
+                        void dump(FILE * fd, EcalPulseShapes & o)
+                        {
+                                for (size_t i = 0; i < _ids.size(); ++i) {
+                                        DetId id(_ids[i]);
+                                        EcalPulseShapes::const_iterator it = o.find(id);
+                                        if (it == o.end()) {
+                                                fprintf(stderr, "Cannot find value for DetId %u", id.rawId());
+                                        }
+                                        coord(_ids[i]);
+                                        fprintf(fd, "%d %d %d  ", _c.ix_, _c.iy_, _c.iz_);
+                                        for (int is = 0; is < EcalPulseShape::TEMPLATESAMPLES; ++is) {
+                                                fprintf(fd, " %f", it->val(is));
+                                        }
+                                        fprintf(fd, "  %u\n", id.rawId());
                                 }
                         }
 

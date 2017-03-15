@@ -49,6 +49,7 @@ cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
         addOption<std::string>("id","i","DetId (raw Id) to be dumped, quoted and blank separated list of raw DetIds, or one of the following keywords: all, EB, EB-, EB+, EE, EE-, EE+");
         addOption<int>("niov","n","number of IOV");
         addOption<int>("prescale","s","prescale factor");
+        addOption<std::string>("connect","c","connect to a specific db");
 }
 
 cond::LaserValidation::~LaserValidation()

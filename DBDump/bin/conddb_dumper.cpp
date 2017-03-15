@@ -9,6 +9,7 @@
 #include "CondFormats/EcalObjects/interface/EcalIntercalibConstantsMC.h"
 #include "CondFormats/EcalObjects/interface/EcalLaserAlphas.h"
 #include "CondFormats/EcalObjects/interface/EcalPedestals.h"
+#include "CondFormats/EcalObjects/interface/EcalPulseShapes.h"
 #include "CondFormats/EcalObjects/interface/EcalTimeCalibConstants.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGLinearizationConst.h"
 #include "CondFormats/ESObjects/interface/ESEEIntercalibConstants.h"
@@ -19,7 +20,7 @@
 
 int usage(char * s)
 {
-        fprintf(stderr, "Usage: %s -O <object> [conddb options]\nFull help available with the -h/--help options.\n", s);
+        fprintf(stderr, "Usage: %s -O <object> -t <tag> [conddb options]\nFull help available with the -h/--help options.\n", s);
         exit(1);
 }
 
@@ -125,6 +126,13 @@ int main(int argc, char** argv)
         supported.push_back("EcalGainRatios");
         if (!help && obj == "EcalGainRatios") {
                 cond::CondDBDumper<EcalGainRatios> d(obj);
+                d.run(argc, argv);
+                return 0;
+        }
+
+        supported.push_back("EcalPulseShapes");
+        if (!help && obj == "EcalPulseShapes") {
+                cond::CondDBDumper<EcalPulseShapes> d(obj);
                 d.run(argc, argv);
                 return 0;
         }
