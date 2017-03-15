@@ -58,7 +58,7 @@ int main( int argc, char** argv )
         sprintf(geom, "detid_geom.dat");
         sprintf(status, " ");
 
-        int tmin = -1, tmax = -1, niov = -1, br = 1, prescale = 1;
+        int tmin = -1, tmax = -1, niov = -1, br = 0, prescale = 1;
 
         while (1) {
 
@@ -175,7 +175,9 @@ int main( int argc, char** argv )
         char * beg, * end;
         EcalLaserAPDPNRatios::EcalLaserAPDPNpair p;
         EcalLaserAPDPNRatios::EcalLaserTimeStamp ts;
+        size_t cnt_line = 0;
         while( (read = getline(&line, &len, fd)) != EOF ) {
+                ++cnt_line;
                 if (line[0] == 'T') {
                         if (!first && !skip) lp.fill(apdpn, t1);
                         skip = 0;
@@ -200,11 +202,24 @@ int main( int argc, char** argv )
                                 t[j] = strtol(beg, &end, 0);
                                 beg = end;
                         }
-                        assert(t1 < t3);
-                        for (int i = 0; i < 92; ++i) assert(t1 <= t[i] && t[i] <= t3);
+                        if (!(t1 < t3)) {
+                                lp.save(output);
+                                fprintf(stderr, "ERROR in line %lu: t1 < t3 failed\n", cnt_line);
+                                assert(0);
+                        }
+                        for (int i = 0; i < 92; ++i) {
+                                if(!(t1 <= t[i] && t[i] <= t3)) {
+                                        lp.save(output);
+                                        fprintf(stderr, "ERROR in line %lu: t1 <= t[i] && t[i] <= t3 failed\n", cnt_line);
+                                        assert(0);
+                                }
+                        }
                         //printf("%d %d %d\n", cnt, EBDetId::MAX_HASH, EEDetId::kSizeForDenseIndexing);
                         if (!first) {
                                 //assert(ot3 == t1); // not always true if sequences are taken from DB
+                                if (!(cnt == EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing)) {
+                                        fprintf(stderr, "found only %d DetId(s) at line %lu\n", cnt, cnt_line);
+                                }
                                 assert(cnt == EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing);
                         }
                         //ot3 = t3;
@@ -228,6 +243,7 @@ int main( int argc, char** argv )
                                 MEEEGeom::SuperCrysCoord iY = (eeid.iy()-1)/5 + 1;    
                                 iLM = MEEEGeom::lmr(iX, iY, eeid.zside());    
                         } else {
+                                fprintf(stderr, "ERROR on line %lu: DetId %d not belonging to EB nor to EE\n", cnt_line, id);
                                 assert(0);
                         }
                         ts.t2 = (edm::Timestamp)t[iLM - 1];
