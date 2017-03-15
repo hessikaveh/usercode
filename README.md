@@ -22,6 +22,7 @@
       * `EcalIntercalibConstantsMC`
       * `EcalLaserAlphas`
       * `EcalPedestals`
+      * `EcalPulseShapes`
       * `EcalTPGLinearizationConst`
       * `EcalTimeCalibConstants`
       * `EcalTimeOffsetConstant`
