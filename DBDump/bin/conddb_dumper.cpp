@@ -20,7 +20,7 @@
 
 int usage(char * s)
 {
-        fprintf(stderr, "Usage: %s -O <object> [conddb options]\nFull help available with the -h/--help options.\n", s);
+        fprintf(stderr, "Usage: %s -O <object> -t <tag> [conddb options]\nFull help available with the -h/--help options.\n", s);
         exit(1);
 }
 
