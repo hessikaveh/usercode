@@ -42,11 +42,12 @@
                        coherent txt file (N.B. does not need the CMSSW environment to work)
 
 #### Dumper setup
-Setup a working area for example in `CMSSW_8_0_2`. Any release `>=8XY`
-should work just fine, contact me in case not.
+Setup a working area for example in `CMSSW_9_0_2`. Any release `>=9XY`
+should work just fine, contact me in case not. For older releases please refer to the branches
+`cmssw_8x` and `cmssw_7x` for `CMSSW_8X` and `CMSSW_7X` respectively.
 ```bash
-cmsrel CMSSW_8_0_2
-cd CMSSW_8_0_2/src
+cmsrel CMSSW_9_0_2
+cd CMSSW_9_0_2/src
 cmsenv
 git cms-init
 git clone git@github.com:ferriff/usercode.git
