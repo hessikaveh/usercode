@@ -37,6 +37,7 @@ cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
         addAuthenticationOptions();
         addOption<bool>("verbose","v","verbose");
         addOption<bool>("all","a","list all tags (default mode)");
+        addOption<std::string>("connect","c","connect to a specific db");
         addOption<cond::Time_t>("beginTime","b","begin time (first since) (optional)");
         addOption<cond::Time_t>("endTime","e","end time (last till) (optional)");
         addOption<std::string>("tag","t","list info of the specified tag");
