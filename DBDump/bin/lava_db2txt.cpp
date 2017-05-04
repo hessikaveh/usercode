@@ -193,7 +193,7 @@ int cond::LaserValidation::execute()
                 if (i.since < since || i.till > till) continue;
                 std::cout << cnt << " " << i.since << " -> " << i.till << "\n";
 
-                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                std::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
                 if (niov > 0 && cnt >= niov) break;
                 //if (fdump) dump_txt(fdump, *pa, (time_t)i.since>>32, (time_t)i.till>>32);
                 if (fdump) dump_etaphi(fdump, *pa, (time_t)i.since>>32, (time_t)i.till>>32);

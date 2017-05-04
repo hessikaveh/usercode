@@ -156,7 +156,7 @@ namespace cond {
                                         if (cnt_iov % prescale != 0) continue;
                                         ++cnt;
                                         print(cnt_iov, i);
-                                        boost::shared_ptr<C> pa = session.fetchPayload<C>(i.payloadId);
+                                        std::shared_ptr<C> pa = session.fetchPayload<C>(i.payloadId);
                                         if (!join) sprintf(filename, "dump_%s__since_%08llu_till_%08llu.dat", _class_name.c_str(), i.since, i.till);
                                         fout = open_file(filename);
                                         if (join) fprintf(fout, "# new IOV: since %llu  till %llu\n", i.since, i.till);

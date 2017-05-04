@@ -141,7 +141,7 @@ int cond::LaserValidation::execute()
                 if (cnt_iov % prescale != 0) continue;
                 ++cnt;
                 std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
-                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                std::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
                 sprintf(filename, "dump_%s__since_%08ld_till_%08ld.dat", tag1.c_str(), (long int)i.since, (long int)i.till);
                 fprintf(stderr, "going to dump on `%s'\n", filename);
                 dump_txt(filename, *pa, (time_t)i.since>>32, (time_t)i.till>>32, flat);

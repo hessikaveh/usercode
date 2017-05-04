@@ -342,7 +342,7 @@ int cond::APDPNRatioHgg::execute()
                 if (cnt_iov % prescale != 0) continue;
                 ++cnt;
                 std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
-                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                std::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
                 tb = (time_t)i.since>>32;
                 te = (time_t)i.till>>32;
                 reset_ring_average();

@@ -185,8 +185,8 @@ int cond::LaserValidation::execute()
                 ++cnt;
                 std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
                 auto j = iov2.getInterval(i.since);
-                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
-                boost::shared_ptr<A> pb = session.fetchPayload<A>(j.payloadId);
+                std::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                std::shared_ptr<A> pb = session.fetchPayload<A>(j.payloadId);
                 merge(*pa, *pb, res);
                 lp.fill(res, (time_t)i.since>>32);
                 //lp.fill(*pa, (time_t)ita->since()>>32);

@@ -246,9 +246,9 @@ int cond::LaserValidation::execute()
                         continue;
                 }
                 auto k = *ik;
-                boost::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
-                boost::shared_ptr<A> pb_1 = session.fetchPayload<A>(j.payloadId);
-                boost::shared_ptr<A> pb_2 = session.fetchPayload<A>(k.payloadId);
+                std::shared_ptr<A> pa = session.fetchPayload<A>(i.payloadId);
+                std::shared_ptr<A> pb_1 = session.fetchPayload<A>(j.payloadId);
+                std::shared_ptr<A> pb_2 = session.fetchPayload<A>(k.payloadId);
 
                 if (j.since > i.since || k.since < i.since) fprintf(stderr, "Error: two consecutive measurements of tag -T before one of tag -t could be found\n");
 

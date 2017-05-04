@@ -247,7 +247,7 @@ void get_run_start(cond::IOVProxy & i, cond::DbSession & s, std::vector<RI> & r,
         for (cond::IOVProxy::const_iterator it = i.begin(); it != i.end(); ++it) {
                 int run = (int)it->since();
                 if (run >= min_run && run <= max_run) {
-                        boost::shared_ptr<RunInfo> p = s.getTypedObject<RunInfo>(it->token());
+                        std::shared_ptr<RunInfo> p = s.getTypedObject<RunInfo>(it->token());
                         RI ri;
                         ri._run = p->m_run;
                         ri._start = (int)(p->m_start_time_ll / 1e+06);
@@ -434,9 +434,9 @@ int main( int argc, char** argv )
         std::string ptk_ic1 = "", ptk_ic2 = "", ptk_chs = "";
 
         // outside the loop for poor man caching capabilities...
-        boost::shared_ptr<EcalChannelStatus> chs;
-        boost::shared_ptr<IC> pica;
-        boost::shared_ptr<IC> picb;
+        std::shared_ptr<EcalChannelStatus> chs;
+        std::shared_ptr<IC> pica;
+        std::shared_ptr<IC> picb;
         for (cond::IOVProxy::const_iterator ita = i_lt1.begin(); ita != i_lt1.end(); ++ita, ++cnt) {
                 if (cnt % prescale != 0) continue;
                 time = (time_t)ita->since()>>32;
@@ -447,8 +447,8 @@ int main( int argc, char** argv )
                 printf("% 4d  %llu -> %llu  %d\n", cnt, ita->since(), ita->till(), run);
                 cond::IOVProxy::const_iterator itb = i_lt2.find(ita->since());
 
-                boost::shared_ptr<A> pa = s_lt1.getTypedObject<A>(ita->token());
-                boost::shared_ptr<A> pb = s_lt2.getTypedObject<A>(itb->token());
+                std::shared_ptr<A> pa = s_lt1.getTypedObject<A>(ita->token());
+                std::shared_ptr<A> pb = s_lt2.getTypedObject<A>(itb->token());
 
                 // some basic caching...
                 cond::IOVProxy::const_iterator itc = i_ic1.find(run);
