@@ -43,6 +43,13 @@
   <use   name="rootcore"/>
   <use   name="usercode/DBDump"/>
 </bin>
+<bin   file="lava_db2root.cpp" name="lava_db2root">
+  <use   name="CondFormats/EcalObjects"/>
+  <use   name="CalibCalorimetry/EcalLaserAnalyzer"/>
+  <use   name="rootgraphics"/>
+  <use   name="rootcore"/>
+  <use   name="usercode/DBDump"/>
+</bin>
 <bin   file="apdpnratio_dump.cpp" name="apdpnratio_dump">
   <use   name="CondFormats/EcalObjects"/>
   <use   name="usercode/DBDump"/>

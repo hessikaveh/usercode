@@ -37,6 +37,7 @@
                          the IOV of one tag to the closest IOV of the other tag
    * `lava_db_dumpId.cpp`: dump ECAL monitoring correction histories for a given set of DetId (or all of them)
    * `lava_db2txt.cpp`: convert the content of ECAL monitoring corrections to a txt file
+   * `lava_db2root.cpp`: convert the content of ECAL monitoring corrections to a root file
    * `merge_dump.cpp`: merges different txt files of ECAL monitoring
                        corrections with overlapping IOV into one single
                        coherent txt file (N.B. does not need the CMSSW environment to work)
