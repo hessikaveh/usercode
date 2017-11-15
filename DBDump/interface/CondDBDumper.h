@@ -47,6 +47,14 @@ namespace cond {
                                 addOption<std::string>("object","O","object to be dumped (required)");
                                 addOption<std::string>("output","o","output file");
                                 addOption<std::string>("tag","t","tag to be dumped (required)");
+                                addOption<std::string>("db","d","database to run the command on;"
+                                                       " arg can be an explicit db connection, e.g. for sqlite files,"
+                                                       " or one of the following aliases:\n"
+                                                       "     dev -> FrontierPrep\n"
+                                                       "     pro -> PromptProd\n"
+                                                       "     arc -> FrontierArc\n"
+                                                       "     int -> FrontierInt\n"
+                                                       );
 
                                 _ids.resize(EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing);
                                 for (int hi = EBDetId::MIN_HASH; hi <= EBDetId::MAX_HASH; ++hi ) {
@@ -104,6 +112,16 @@ namespace cond {
                         int execute()
                         {
                                 std::string connect = "frontier://FrontierProd/CMS_CONDITIONS";
+                                std::string db = "";
+                                if (hasOptionValue("db")) {
+                                        if      (db == "dev") connect = "frontier://FrontierPrep/CMS_CONDITIONS";
+                                        else if (db == "pro") connect = "frontier://PromptProd/CMS_CONDITIONS";
+                                        else if (db == "arc") connect = "frontier://FrontierArc/CMS_CONDITIONS";
+                                        else if (db == "int") connect = "frontier://FrontierInt/CMS_CONDITIONS";
+                                        else {
+                                                connect = getOptionValue<std::string>("db" );
+                                        }
+                                }
 
                                 cond::persistency::ConnectionPool connPool;
 
