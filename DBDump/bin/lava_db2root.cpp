@@ -49,13 +49,11 @@ namespace cond {
                 private: 
                         TTree *tree;
                         TFile *tfile;
-                        int time[92];
-                        float cor[75848];
-                        int x[75848];
-                        int y[75848];
-                        int z[75848];
-                        int eta[75848];
-                        int phi[75848];
+                        unsigned int time[93];
+                        float nrv[75848];
+                        int ix[75848];
+                        int iy[75848];
+                        int iz[75848];
                         int detId[75848];
                         static std::string timeToString(time_t t);
                         std::vector<DetId> ecalDetIds_;
@@ -90,6 +88,8 @@ cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
         addOption<int>("skipiov","S","number of IOV to skip");
         addOption<int>("appendiov","N","number of IOV to append");
         addOption<int>("updateTree","U","update existing tree");
+        addOption<std::string>("connect","c","connect to a specific db");
+        addOption<int>("prescale","s","prescale factor");
 
         ecalDetIds_.resize(EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing);
         int idx = -1;
@@ -108,9 +108,6 @@ cond::LaserValidation::LaserValidation():Utilities("cmscond_list_iov")
         }
         assert(ecalDetIds_.size() == 75848);
         assert(ecalDetIds_.size() == EBDetId::MAX_HASH + 1 + EEDetId::kSizeForDenseIndexing);
-
-
-
 }
 
 
@@ -125,20 +122,23 @@ void cond::LaserValidation::initRoot()
         std::stringstream fname;
         title << "Dump of Laser data from file";
         fname << "/tmp/DumpLaserDB";
-        fname << ".root";
+        fname << ".";
+        fname << "r";
+        fname << "o";
+        fname << "o";
+        fname << "t";
         std::cout << "Building tree " << title.str() << " on file " << fname.str()
                 << std::endl;
 
         tfile = new TFile(fname.str().c_str(), "RECREATE", title.str().c_str());
-        tree = new TTree("LDB", title.str().c_str());
-        tree->Branch("time",          time,          "time[92]/I");
+        tree = new TTree("ntu", title.str().c_str());
+        tree->Branch("time",          time,          "time[93]/i");
         tree->Branch("detId",         detId,         "detId[75848]/I");
-        tree->Branch("eta",           eta,           "eta[75848]/I");
-        tree->Branch("phi",           phi,           "phi[75848]/I");
-        tree->Branch("x",             x,             "x[75848]/I");
-        tree->Branch("y",             y,             "y[75848]/I");
-        tree->Branch("z",             z,             "z[75848]/I");
-        tree->Branch("cor",           cor,           "cor[75848]/F");
+        tree->Branch("ix",            ix,            "ix[75848]/I");
+        tree->Branch("iy",            iy,            "iy[75848]/I");
+        tree->Branch("iz",            iz,            "iz[75848]/I");
+        TBranch * b = tree->Branch("nrv",           nrv,           "nrv[75848]/F");
+        b->SetTitle("Normalized response to laser light");
         std::cout << "Tree created" << std::endl;
 }
 
@@ -161,21 +161,17 @@ int cond::LaserValidation::initRootToAppend()
 
         TBranch        *b_time;   //!
         TBranch        *b_detId;   //!
-        TBranch        *b_eta;   //!
-        TBranch        *b_phi;   //!
-        TBranch        *b_x;   //!
-        TBranch        *b_y;   //!
-        TBranch        *b_z;   //!
-        TBranch        *b_cor;   //!
+        TBranch        *b_ix;   //!
+        TBranch        *b_iy;   //!
+        TBranch        *b_iz;   //!
+        TBranch        *b_nrv;   //!
 
         tree->SetBranchAddress("time", time, &b_time);
         tree->SetBranchAddress("detId", detId, &b_detId);
-        tree->SetBranchAddress("eta", eta, &b_eta);
-        tree->SetBranchAddress("phi", phi, &b_phi);
-        tree->SetBranchAddress("x", x, &b_x);
-        tree->SetBranchAddress("y", y, &b_y);
-        tree->SetBranchAddress("z", z, &b_z);
-        tree->SetBranchAddress("cor", cor, &b_cor);
+        tree->SetBranchAddress("ix", ix, &b_ix);
+        tree->SetBranchAddress("iy", iy, &b_iy);
+        tree->SetBranchAddress("iz", iz, &b_iz);
+        tree->SetBranchAddress("nrv", nrv, &b_nrv);
 
         std::cout << "Tree re-loaded" << std::endl;
 
@@ -248,23 +244,30 @@ int cond::LaserValidation::execute()
         int NiovAppend = -1;
         if (hasOptionValue("appendiov")) NiovAppend = getOptionValue<int>("appendiov");
 
-        int cnt = -1;
         int cntAppend=0;
+
+        int prescale = 1;
+        if (hasOptionValue("prescale")) prescale = getOptionValue<int>("prescale");
+        assert(prescale > 0);
 
         // iterate over the IOVs 
         if(_verbose) std::cout << "iterate over the IOVs "  << std::endl ;
 
-        for (cond::persistency::IOVProxy::Iterator ita = iov.begin(); ita != iov.end() ; ++ita ) {
-                cnt++;
-                if(_verbose) std::cout << "cnt= "<<cnt  << std::endl ;
-                if (cnt == 0) continue;
+        //for (cond::persistency::IOVProxy::Iterator ita = iov.begin(); ita != iov.end() ; ++ita ) {
+        int cnt = 0, cnt_iov = 0;
+        for (const auto & i : iov) {
+                ++cnt_iov;
+                if (i.since < since || i.till > till) continue;
+                if (cnt_iov % prescale != 0) continue;
+                ++cnt;
+                std::cout << cnt_iov << " " << i.since << " -> " << i.till << " " << cnt << "\n";
 
-                if((updateTree && ( (niov>0 && cnt <nIOVTree ) || (NiovAppend>0 && cnt<= nIOVTree) ))||(skipiov>0 && cnt<=skipiov)) {
+                if((updateTree && ( (niov>0 && cnt_iov <nIOVTree ) || (NiovAppend>0 && cnt_iov<= nIOVTree) ))||(skipiov>0 && cnt_iov<=skipiov)) {
                         std::cout <<"IOV not written in rootuple (already present or to be skipped )"<< "\n";
                 } else {
-                        std::cout <<"IOV "<<cnt<<" will be written in rootuple"<< "\n";
                         std::shared_ptr<EcalLaserAPDPNRatios> my_laser 
-                                = condDbSession.fetchPayload<EcalLaserAPDPNRatios>( (*ita).payloadId );
+                                = condDbSession.fetchPayload<EcalLaserAPDPNRatios>( i.payloadId );
+                        time[0] = (unsigned int)(i.since>>32);
                         dbToRoot(*my_laser);
                         ++cntAppend;
                 }
@@ -294,7 +297,7 @@ void cond::LaserValidation::dbToRoot(const EcalLaserAPDPNRatios & corr)
                 << "(" << timeToString(t1) << " - " << timeToString(t3) << "\n";
 
         for(unsigned i = 0; i < t.size(); ++i) {
-                time[i]=t[i].t2.unixTime();
+                time[i + 1]=t[i + 1].t2.unixTime();
         }
 
         int icrys=0;
@@ -304,13 +307,11 @@ void cond::LaserValidation::dbToRoot(const EcalLaserAPDPNRatios & corr)
                         if (EBDetId::validDetId(ieta,iphi)) {
                                 EBDetId detid(ieta,iphi);
                                 EcalLaserAPDPNRatios::EcalLaserAPDPNpair corr =  p.barrel(detid.hashedIndex());
-                                cor[icrys]   = corr.p2;
+                                nrv[icrys]   = corr.p2;
                                 detId[icrys] = detid.hashedIndex();
-                                eta[icrys]   = detid.ieta();
-                                phi[icrys]   = detid.iphi();
-                                x[icrys]     = 0;
-                                y[icrys]     = 0;
-                                z[icrys]     = 0;
+                                ix[icrys]   = detid.ieta();
+                                iy[icrys]   = detid.iphi();
+                                iz[icrys]     = 0;
                                 icrys++;
                         }
                 }
@@ -322,20 +323,17 @@ void cond::LaserValidation::dbToRoot(const EcalLaserAPDPNRatios & corr)
                                 if (EEDetId::validDetId(iX,iY,iZ)) {
                                         EEDetId detid(iX,iY,iZ);
                                         EcalLaserAPDPNRatios::EcalLaserAPDPNpair corr =  p.endcap(detid.hashedIndex());
-                                        cor[icrys]   = corr.p2;
+                                        nrv[icrys]   = corr.p2;
                                         detId[icrys] = detid.hashedIndex();
-                                        eta[icrys]   = 0;
-                                        phi[icrys]   = 0;
-                                        x[icrys]     = detid.ix();
-                                        y[icrys]     = detid.iy();
-                                        z[icrys]     = detid.zside();
+                                        ix[icrys]     = detid.ix();
+                                        iy[icrys]     = detid.iy();
+                                        iz[icrys]     = detid.zside();
                                         icrys++;
                                 }
                         }
                 }
         }
         tree->Fill();
-        std::cout << "filled tree.\n";
 }
 
 
