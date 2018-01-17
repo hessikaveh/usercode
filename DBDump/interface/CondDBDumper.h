@@ -20,6 +20,8 @@
 #include "CondFormats/EcalObjects/interface/EcalPulseShapes.h"
 #include "CondFormats/EcalObjects/interface/EcalTimeOffsetConstant.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGLinearizationConst.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGGroups.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGLutIdMap.h"
 #include "CondFormats/ESObjects/interface/ESEEIntercalibConstants.h"
 #include "CondFormats/ESObjects/interface/ESGain.h"
 #include "CondFormats/ESObjects/interface/ESIntercalibConstants.h"
@@ -256,6 +258,25 @@ namespace cond {
                                                 it->mult_x6,  it->shift_x6,
                                                 it->mult_x1,  it->shift_x1,
                                                 id.rawId());
+                                }
+                        }
+
+                        void dump(FILE * fd, EcalTPGGroups & o)
+                        {
+                                for (const auto & it : o.getMap()) {
+                                        fprintf(fd, "%d %d\n", it.first, it.second);
+                                }
+                        }
+
+                        void dump(FILE * fd, EcalTPGLutIdMap & o)
+                        {
+                                for (const auto & it : o.getMap()) {
+                                        fprintf(fd, "%d  ", it.first);
+                                        const unsigned int * lut = it.second.getLut();
+                                        for (int i = 0; i < 1024; ++i) {
+                                                fprintf(fd, " %d", lut[i]);
+                                        }
+                                        fprintf(fd, "\n");
                                 }
                         }
 
