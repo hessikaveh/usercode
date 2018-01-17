@@ -12,6 +12,8 @@
 #include "CondFormats/EcalObjects/interface/EcalPulseShapes.h"
 #include "CondFormats/EcalObjects/interface/EcalTimeCalibConstants.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGLinearizationConst.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGGroups.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGLutIdMap.h"
 #include "CondFormats/ESObjects/interface/ESEEIntercalibConstants.h"
 #include "CondFormats/ESObjects/interface/ESGain.h"
 #include "CondFormats/ESObjects/interface/ESIntercalibConstants.h"
@@ -112,6 +114,20 @@ int main(int argc, char** argv)
         supported.push_back("EcalTPGLinearizationConst");
         if (!help && obj == "EcalTPGLinearizationConst") {
                 cond::CondDBDumper<EcalTPGLinearizationConst> d(obj);
+                d.run(argc, argv);
+                return 0;
+        }
+
+        supported.push_back("EcalTPGGroups");
+        if (!help && obj == "EcalTPGGroups") {
+                cond::CondDBDumper<EcalTPGGroups> d(obj);
+                d.run(argc, argv);
+                return 0;
+        }
+
+        supported.push_back("EcalTPGLutIdMap");
+        if (!help && obj == "EcalTPGLutIdMap") {
+                cond::CondDBDumper<EcalTPGLutIdMap> d(obj);
                 d.run(argc, argv);
                 return 0;
         }
