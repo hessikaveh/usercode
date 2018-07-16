@@ -51,15 +51,19 @@ cmsrel CMSSW_9_0_2
 cd CMSSW_9_0_2/src
 cmsenv
 git cms-init
-git clone git@github.com:ferriff/usercode.git
+git clone git@github.com:hessikaveh/usercode.git
 git cms-merge-topic -u ferriff:ecal_calib_tools # works with some apparently harmless errors
 cd usercode/
-scram b
+scram b -j10
 ```
 
-Example: how to dump an object from the default Frontier DataBase
+Example: how to draw plots:
 ```bash
-conddb_dumper -O EcalIntercalibConstants -t EcalIntercalibConstants_2012ABCD_offline
+noise 1 -1 EcalADCToGeVConstant_2017_V1_Bon_mc EcalIntercalibConstants_V1_hlt  EcalLaserAlphas_2017_mc EcalPedestals_2017extrap_25fb_mc EcalLaserAPDPNRatios_weekly_hlt 1530432369
+
+where the last number(1530432369) is the unix timestamp for 1st of July 2018, you can use the following website to change your desired time to unix timestamp:
+https://www.epochconverter.com/
+
 ```
 
 #### Additional documentation
