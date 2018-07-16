@@ -70,7 +70,10 @@
   <use   name="CondFormats/EcalObjects"/>
   <use   name="usercode/DBDump"/>
 </bin>
+<<<<<<< HEAD
 <bin file="noise.cpp" name="noise">
 <use   name="CondFormats/EcalObjects"/>
   <use   name="usercode/DBDump"/>
 </bin>
+=======
+>>>>>>> 3fe759f76a99b8d20c45717555609721f8267930
