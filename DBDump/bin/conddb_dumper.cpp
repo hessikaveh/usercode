@@ -59,11 +59,7 @@ int main(int argc, char** argv)
                 }
         }
         if (obj == "none" && !help) usage(argv[0]);
-<<<<<<< HEAD
 std::cout << "here is :"  << argc <<"  and the tags " << argv[0] << " second "  << argv[1] <<" third " << argv[2] << " fourth " << argv[3] << " fifth " << argv[4] << std::endl;
-=======
-
->>>>>>> 3fe759f76a99b8d20c45717555609721f8267930
         supported.push_back("EcalIntercalibConstants");
         if (!help && obj == "EcalIntercalibConstants") {
                 cond::CondDBDumper<EcalIntercalibConstants> d(obj);
